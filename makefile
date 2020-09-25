@@ -15,12 +15,13 @@ CXX ?= g++
 CL = $(CC)
 #DEBUG=-DDEBUG -g
 
+JAVA_HOME ?= /usr/lib/jvm/java-8-openjdk-amd64
 PREFIX ?= /usr/local
 DIRBIN ?= $(PREFIX)/bin
 DIRINC ?= $(PREFIX)/include
 DIRLIB ?= $(PREFIX)/lib
 
-OPT=-fstrict-aliasing
+OPT=-fstrict-aliasing -fPIC
 ifeq (,$(findstring clang, $(CC)))
 OPT+=-falign-loops
 endif
@@ -119,6 +120,24 @@ endif
 
 libic.a: $(LIB)
 	ar cr $@ $+
+
+libic.so : $(LIB)
+	$(CC) -shared $+ -o $@
+
+JAVA_SUBDIR = java
+
+jic.h: $(JAVA_SUBDIR)/jic.java
+	# cp jic.h ..
+	cd $(JAVA_SUBDIR) && javah -jni jic && cp jic.h ..
+
+# $(JAVA_SUBDIR)/jic.class : $(JAVA_SUBDIR)/jic.java
+# 	cd $(JAVA_SUBDIR) && javac jic.java
+
+$(JAVA_SUBDIR)/libic.so : libic.a jic.h jic.c
+	$(CC) -shared $(CFLAGS) -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux jic.c libic.a -o $(JAVA_SUBDIR)/libic.so
+
+$(JAVA_SUBDIR)/jicbench : $(JAVA_SUBDIR)/jicbench.java $(JAVA_SUBDIR)/libic.so
+	cd $(JAVA_SUBDIR) && javac jicbench.java && java -Djava.library.path=. jicbench
 
 icapp: icapp.o libic.a $(OB)
 	$(CL) $^ $(LDFLAGS) -o icapp

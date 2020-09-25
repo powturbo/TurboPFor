@@ -23,9 +23,9 @@
 **/
 //     icbench - "Integer Compression" Java Critical Native Interface
 
-/* Usage: (actually no makefile available)
+/* Usage: (make java/jicbench)
 1 - generate header jic.h 
-$ cd ~/TurboPFor/java
+$ cd TurboPFor/java
 $ javah -jni jic
 $ cp jic.h ..
 
@@ -34,58 +34,51 @@ $ javac jic.java
 $ javac jicbench.java
 
 3 - compile & link a shared library
-$ cd ~/TurboPFor
+$ cd ..
 $ gcc -O3 -w -march=native -fstrict-aliasing -m64 -shared -fPIC -I/usr/lib/jvm/default-java/include -I/usr/lib/jvm/default-java/include/linux bitpack.c bitunpack.c vp4c.c vp4d.c vsimple.c vint.c bitutil.c jic.c -o libic.so
 $ Search "/usr/lib/" for the file "jni.h" and replace the JDK name "default-java" if necessary (example by "java-8-openjdk-amd64").  
 
 4 - copy "libic.so" to java library directory
 
-5 - start icbench
-$java icbench
+5 - start jicbench
+$java jicbench
 */
 
 class jicbench {
   // Note: this is a simple interface test not a real benchmark 
 
   public static void main(String args[]) {
-    jic ic = new jic();
-    final  int[]  in = new  int[256];
-    final byte[] out = new byte[256*5];
-    final  int[] cpy = new  int[256];
+    int bnum = 12500;
 
-    for (int i = 0; i < 128; ++i) { 
+    jic ic = new jic();
+    final  int[]  in = new  int[bnum];
+    final byte[] out = new byte[bnum*4];
+    // final byte[] out = new byte[bnum*4*5/3+1024];
+    final  int[] cpy = new  int[bnum];
+
+    for (int i = 0; i < bnum; ++i) {
       in[i] = i;
       cpy[i] = 0;
     }
-    long t0 = System.currentTimeMillis();		 
-    int b=0, bnum = 125000000; // 16 billions integers. 64 GB
-    for (int i = 0; i < bnum; ++i) { 
-      //ic.vbenc32(in,  128, out);				 
-      //ic.vsenc32(in,  128, out);				 
-      //ic.p4nenc32(in, 128, out);
 
-      b = ic.bit32(in, 128);
-      ic.bitpack128v32(  in, 128, out, b);
-    }
 
+    long t0 = System.currentTimeMillis();
+    ic.p4nenc32(in, bnum, out);
     long t = System.currentTimeMillis() - t0;    
     System.out.println("encode time'" + t + "'");
-    t0 = System.currentTimeMillis();	
-    for (int i = 0; i < bnum; ++i) { 
-      //ic.vbenc32(out, 128, cpy);				 
-      //ic.vsenc32(out, 128, cpy);
-      //ic.p4nenc32(in, 128, out);
 
-      ic.bitunpack128v32(out, 128, cpy, b);
-    }
 
-    for (int i = 0; i < 128; ++i) { 
+    t0 = System.currentTimeMillis();
+    ic.p4ndec32(out, bnum, cpy);
+    t = System.currentTimeMillis() - t0;
+    System.out.println("decode time'" + t + "'");
+
+    for (int i = 0; i < bnum; ++i) {
       if(in[i] != cpy[i]) {
         System.err.println("Error at'" + i + "'");
         System.exit(1);
       }
     }
-    t = System.currentTimeMillis() - t0;
-    System.out.println("decode time'" + t + "'");
+    System.out.println("check pass");
   }
 }
