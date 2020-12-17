@@ -33,7 +33,7 @@
 #include "bitutil.h"
 #include "fp.h"
 
-// ------------------ bitio genaral macros ---------------------------
+// ------------------ bitio general macros ---------------------------
   #ifdef __AVX2__
     #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 #include <intrin.h>
